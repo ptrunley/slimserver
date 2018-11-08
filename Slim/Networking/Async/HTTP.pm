@@ -95,13 +95,13 @@ sub new_socket {
 
 			# First, try without explicit SNI, so we don't inadvertently break anything. 
 			# (This is the 'old' behaviour.) (Probably overly conservative.)
-			my $sock = Slim::Networking::Async::Socket::HTTPS->new( @_ );
+			my %args = @_;
+			$args{SSL_verify_mode} = Net::SSLeay::VERIFY_NONE();
+			my $sock = Slim::Networking::Async::Socket::HTTPS->new( %args );
 			return $sock if $sock;
 
 			# Failed. Try again with an explicit SNI.
-			my %args = @_;
 			$args{SSL_hostname} = $args{Host};
-			$args{SSL_verify_mode} = Net::SSLeay::VERIFY_NONE();
 			return Slim::Networking::Async::Socket::HTTPS->new( %args );
 		}
 		else {
