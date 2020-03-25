@@ -1,6 +1,6 @@
 package Slim::Control::Queries;
 
-# Logitech Media Server Copyright 2001-2011 Logitech.
+# Logitech Media Server Copyright 2001-2020 Logitech.
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License,
 # version 2.
@@ -29,6 +29,7 @@ L<Slim::Control::Queries> implements most Logitech Media Server queries and is d
 
 use strict;
 
+use File::Basename qw(basename);
 use Storable;
 use JSON::XS::VersionOneAndTwo;
 use Digest::MD5 qw(md5_hex);
@@ -2802,10 +2803,12 @@ sub readDirectoryQuery {
 		my $filterRE = qr/./ unless ($filter eq 'musicfiles');
 
 		# get file system items in $folder
-		@fsitems = Slim::Utils::Misc::readDirectory(catdir($folder), $filterRE);
+		@fsitems = Slim::Utils::Misc::readDirectory($folder, $filterRE);
+		my $transformFn = main::ISWINDOWS ? sub { Slim::Utils::Unicode::encode_locale($_[0]) } : sub { $_[0] };
 		map {
+			Slim::Utils::Unicode::utf8on($_) if !main::ISWINDOWS && Slim::Utils::Unicode::looks_like_utf8($_);
 			$fsitems{$_} = {
-				d => -d catdir($folder, $_),
+				d => -d $transformFn->(catdir($folder, $_)),
 				f => -f _
 			}
 		} @fsitems;
@@ -2855,14 +2858,17 @@ sub readDirectoryQuery {
 
 			my $path;
 			for my $item (@fsitems[$start..$end]) {
+				my $name = $item;
+
+				$item = Slim::Utils::Unicode::utf8decode_locale($item);
+
 				$path = ($folder ? catdir($folder, $item) : $item);
 
-				my $name = $item;
 				my $decodedName;
 
 				# display full name if we got a Windows 8.3 file name
 				if (main::ISWINDOWS && $name =~ /~\d/) {
-					$decodedName = Slim::Music::Info::fileName($path);
+					$decodedName = basename(Slim::Music::Info::fileName($path));
 				} else {
 					$decodedName = Slim::Utils::Unicode::utf8decode_locale($name);
 				}
@@ -3246,6 +3252,9 @@ sub serverstatusQuery {
 	if ( my $mac = Slim::Utils::OSDetect->getOS()->getMACAddress() ) {
 		$request->addResult('mac', $mac);
 	}
+
+	$request->addResult('ip', Slim::Utils::Network::serverAddr());
+	$request->addResult('httpport', $prefs->get('httpport'));
 
 	if (Slim::Schema::hasLibrary()) {
 		# add totals
@@ -5092,6 +5101,9 @@ sub showArtwork {
 
 # Wipe cached data, called after a rescan
 sub wipeCaches {
+	my $bmfCacheObject = tied %bmfCache;
+	tie %bmfCache, 'Tie::Cache::LRU::Expires', EXPIRES => $bmfCacheObject->{EXPIRES}, ENTRIES => $bmfCacheObject->{ENTRIES};
+
 	$cache = {};
 }
 
@@ -5364,7 +5376,7 @@ sub _getTagDataForTracks {
 
 	my $join_tracks_persistent = sub {
 		if ( main::STATISTICS && $sql !~ /JOIN tracks_persistent/ ) {
-			$sql .= 'JOIN tracks_persistent ON tracks_persistent.urlmd5 = tracks.urlmd5 ';
+			$sql .= 'LEFT JOIN tracks_persistent ON tracks_persistent.urlmd5 = tracks.urlmd5 ';
 		}
 	};
 

@@ -1,8 +1,6 @@
 package Slim::Control::XMLBrowser;
 
-# $Id: XMLBrowser.pm 23262 2008-09-23 19:21:03Z andy $
-
-# Copyright 2005-2009 Logitech.
+# Logitech Media Server Copyright 2005-2020 Logitech.
 
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License, 
@@ -1435,7 +1433,6 @@ sub _cliQuery_done {
 					mp3tunes	=>	'PLUGIN_MP3TUNES_MODULE_NAME',
 					radiotime	=>	'PLUGIN_RADIOTIME_MODULE_NAME',
 					slacker		=>	'PLUGIN_SLACKER_MODULE_NAME',
-					live365		=>	'PLUGIN_LIVE365_MODULE_NAME',
 					lma		=>	'PLUGIN_LMA_MODULE_NAME',
 				};
 				

@@ -1,8 +1,6 @@
 package Slim::Utils::OS;
 
-# $Id: Base.pm 21790 2008-07-15 20:18:07Z andy $
-
-# Logitech Media Server Copyright 2001-2011 Logitech.
+# Logitech Media Server Copyright 2001-2020 Logitech.
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License,
 # version 2.
@@ -119,7 +117,7 @@ sub initSearchPath {
 	elsif ( $class->{osDetails}->{'binArch'} eq 'armhf-linux' ) {
 		push @paths, catdir($baseDir, 'arm-linux');
 	}
-	elsif ( $class->{osDetails}->{'binArch'} =~ /darwin/i && $class->{osDetails}->{osArch} =~ /x86_64/ ) {
+	elsif ( $class->{osDetails}->{'binArch'} =~ /darwin/i && ($class->{'osDetails'}->{'osArch'} =~ /x86_64/ || $class->{'osDetails'}->{'osName'} =~ /\b10\.[1-9][4-9]\./) ) {
 		unshift @paths, catdir($baseDir, $class->{osDetails}->{'binArch'} . '-x86_64'), catdir($baseDir, $^O . '-x86_64');
 	}
 
@@ -388,7 +386,7 @@ Get a list of values from the osDetails list
 
 sub get {
 	my $class = shift;
-	
+
 	if ( wantarray ) {	
 		return map { $class->{osDetails}->{$_} } 
 		       grep { $class->{osDetails}->{$_} } @_;
@@ -451,7 +449,6 @@ sub canAutoUpdate { 0 };
 sub installerExtension { '' };
 sub installerOS { '' };
 
-# XXX - disable AutoRescan for all but SqueezeOS for now
 sub canAutoRescan { 0 }
 
 # can we use more memory to improve DB performance?

@@ -1,6 +1,6 @@
 package Slim::Utils::OS::Synology;
 
-# Logitech Media Server Copyright 2001-2011 Logitech.
+# Logitech Media Server Copyright 2001-2020 Logitech.
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License, 
 # version 2.
@@ -85,21 +85,33 @@ sub dirsFor {
 	return wantarray() ? @dirs : $dirs[0];
 }
 
+# ignore the many @... sub-folders. The static list in ignoredItems() would never be complete.
+sub postInitPrefs {
+	my ($class, $prefs) = @_;
+
+	# only do this once - if somebody decides to modify the value, so be it!
+	if (!$prefs->get('ignoreDirREForSynologySet') && !$prefs->get('ignoreDirRE')) {
+		$prefs->set('ignoreDirRE', '^@[a-zA-Z]+');
+		$prefs->set('ignoreDirREForSynologySet', 1);
+	}
+}
 
 sub ignoredItems {
 	return (
-		'@appstore'      => 1,   # Synology package manager
-		'@autoupdate'    => 1,
-		'@clamav'        => 1,
-		'@cloudsync'     => 1,
-		'@database'      => 1,   # databases store
-		'@download'      => 1,
-		'@eaDir'         => 1,   # media indexer meta data
+		'@AntiVirus'   => 1,
+		'@appstore'    => 1,   # Synology package manager
+		'@autoupdate'  => 1,
+		'@clamav'      => 1,
+		'@cloudsync'   => 1,
+		'@database'    => 1,   # databases store
+		'@download'    => 1,
+		'@eaDir'       => 1,   # media indexer meta data
 		'@img_bkp_cache' => 1,
 		'@maillog'     => 1,
 		'@MailScanner' => 1,
 		'@optware'     => 1,   # NSLU2-Linux Optware system
 		'@postfix'     => 1,
+		'@quarantine'  => 1,
 		'@S2S'         => 1,
 		'@sharesnap'   => 1,
 		'@spool'       => 1,   # mail/print/.. spool
@@ -113,6 +125,7 @@ sub ignoredItems {
 		'@tmp'         => 1,   # system temporary files
 		'upd@te'       => 1,   # firmware update temporary directory
 		'#recycle'     => 1,
+		'#snapshot'    => 1,
 		# system paths in the fs root which will not contain any music
 		'bin'          => '/',
 		'config'       => '/',
@@ -134,6 +147,7 @@ sub ignoredItems {
 		'sbin'         => '/',
 		'sys'          => '/',
 		'tmp'          => '/',
+		'tmpRoot'      => '/',
 		'usr'          => '/',
 		'var'          => '/',
 		'var.defaults' => '/',

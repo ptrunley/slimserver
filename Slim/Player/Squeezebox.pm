@@ -1,6 +1,6 @@
 package Slim::Player::Squeezebox;
 
-# Logitech Media Server Copyright 2001-2011 Logitech.
+# Logitech Media Server Copyright 2001-2020 Logitech.
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License,
 # version 2.
@@ -670,6 +670,15 @@ sub stream_s {
 	} elsif ($format eq 'ogg') {
 
 		$formatbyte      = 'o';
+		$pcmsamplesize   = '?';
+		$pcmsamplerate   = '?';
+		$pcmendian       = '?';
+		$pcmchannels     = '?';
+		$outputThreshold = 20;
+		
+	} elsif ($format eq 'ops') {
+
+		$formatbyte      = 'u';
 		$pcmsamplesize   = '?';
 		$pcmsamplerate   = '?';
 		$pcmendian       = '?';

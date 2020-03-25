@@ -1,6 +1,6 @@
 package Slim::Utils::OS::Linux;
 
-# Logitech Media Server Copyright 2001-2011 Logitech.
+# Logitech Media Server Copyright 2001-2020 Logitech.
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License,
 # version 2.
@@ -88,11 +88,7 @@ sub getFlavor {
 
 		return 'Netgear RAIDiator';
 
-	} elsif (-f '/etc/squeezeos.version') {
-
-		return 'SqueezeOS';
-
-	} elsif ($osName =~ /debian|devuan|ubuntu/ || -f '/etc/debian_version' || -f '/etc/devuan_version') {
+	} elsif ($osName =~ /debian|devuan|ubuntu|raspbian/ || -f '/etc/debian_version' || -f '/etc/devuan_version') {
 
 		return 'Debian';
 

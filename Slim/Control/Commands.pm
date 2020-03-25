@@ -1,8 +1,6 @@
 package Slim::Control::Commands;
 
-# $Id: Commands.pm 5121 2005-11-09 17:07:36Z dsully $
-#
-# Logitech Media Server Copyright 2001-2011 Logitech.
+# Logitech Media Server Copyright 2001-2020 Logitech.
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License,
 # version 2.
@@ -2049,7 +2047,11 @@ sub playlistcontrolCommand {
 
 			$what->{'year.id'} = $year_id;
 		}
-		
+
+		if (defined(my $sort = $request->getParam('sort'))) {
+			$what->{'sort'} = $sort;
+		}
+
 		@tracks = _playlistXtracksCommand_parseSearchTerms($client, $what, $cmd);
 	}
 
@@ -3080,28 +3082,11 @@ sub wipecacheCommand {
 		}
 
 		Slim::Utils::Progress->clear();
-		
-		if ( Slim::Utils::OSDetect::isSqueezeOS() ) {
-			# Wipe/rescan in-process on SqueezeOS
 
-			# XXX - for the time being we're going to assume that the embedded server will only handle one folder
-			my $dir = Slim::Utils::Misc::getAudioDirs()->[0];
-			
-			my %args = (
-				types    => 'list|audio',
-				scanName => 'directory',
-				progress => 1,
-				wipe     => 1,
-			);
-			
-			Slim::Utils::Scanner::Local->rescan( $dir, \%args );
-		}
-		else {
-			# Launch external scanner on normal systems
-			Slim::Music::Import->launchScan( {
-				wipe => 1,
-			} );
-		}
+		# Launch external scanner on normal systems
+		Slim::Music::Import->launchScan( {
+			wipe => 1,
+		} );
 	}
 
 	$request->setStatusDone();
@@ -3288,12 +3273,10 @@ sub _playlistXtracksCommand_parseSearchTerms {
 	my $sqlHelperClass = Slim::Utils::OSDetect->getOS()->sqlHelperClass();
 	
 	my $collate = $sqlHelperClass->collate();
-	
-	my $albumSort 
-		= $sqlHelperClass->append0("album.titlesort") . " $collate"
-		. ', me.disc, me.tracknum, '
-		. $sqlHelperClass->append0("me.titlesort") . " $collate";
-		
+
+	my $albumSort = $sqlHelperClass->append0("album.titlesort") . " $collate"
+		. ', me.disc, me.tracknum, ' . $sqlHelperClass->append0("me.titlesort") . " $collate";
+	my $albumYearSort = $sqlHelperClass->append0("album.year") . ", " . $albumSort;
 	my $trackSort = "me.disc, me.tracknum, " . $sqlHelperClass->append0("me.titlesort") . " $collate";
 	
 	if ( !Slim::Schema::hasLibrary()) {
@@ -3399,11 +3382,7 @@ sub _playlistXtracksCommand_parseSearchTerms {
 
 			$attrs{$key} = $value;
 
-		} elsif ($key eq 'sort') {
-
-			$sort = $value;
-
-		} else {
+		} elsif ($key ne 'sort') { # 'sort' handled afterwards...
 
 			if ($key =~ /\.(?:name|title)search$/) {
 				
@@ -3418,6 +3397,21 @@ sub _playlistXtracksCommand_parseSearchTerms {
 
 				$find{$key} = Slim::Utils::Text::ignoreCase($value, 1);
 			}
+		}
+	}
+
+	# Check for 'sort' after iterating other keys, so that it takes precedence...
+	if (defined($terms->{'sort'})) {
+		my $value = $terms->{'sort'};
+
+		if ($value eq 'artflow' || $value eq 'yearartistalbum' || $value eq 'yearalbum') {
+			# If its an album sort where year takes precedence, then sort by year first
+			if ($sort eq $albumSort) {
+				$sort = $albumYearSort;
+			}
+		} elsif ($value !~ /^(artistalbum|albumtrack|new|random)$/) {
+			# Only use sort value if it is **not** an album sort.
+			$sort = $value;
 		}
 	}
 
@@ -3479,7 +3473,7 @@ sub _playlistXtracksCommand_parseSearchTerms {
 			delete $joinMap{'year'};
 		}
 		
-		if ($sort && $sort eq $albumSort) {
+		if ($sort && ($sort eq $albumSort || $sort eq $albumYearSort)) {
 			if ($find{'me.album'}) {
 				# Don't need album-sort if we have a specific album-id
 				$sort = undef;
